@@ -39,7 +39,7 @@ function update_policy!(m::UBEV)
     if m.rewards_known
         δprime /= 7
     else
-        δprima /= 9
+        δprime /= 9
     end
     Vmax = maxV(m)
     Rmax = maxR(m)
