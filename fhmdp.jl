@@ -119,6 +119,24 @@ function randomMDP(S, A, H, α =.1)
     end
     SmallFiniteHorizonMDP(P, R, p0, 1, 1)
 end
+function stateDepTestMDP(N, ϵ=1e-2)
+    S = 2N + 2
+    A = 2
+    H = 2
+    pp0 = zeros(S)
+    pp0[1] = 1
+    p0 = Categorical(pp0)
+    R = zeros(S, A, H)
+    R[(S - N + 1):end, :, 2] = 1
+    R[2, :, 2] = 0.5 + ϵ
+    P = zeros(S, S, A, H)
+    for s=1:S, a=1:A
+        P[s, s, a, 2] = 1.
+    end
+    P[3:end, 1, 1, 1] = 1 / 2 / N
+    P[2, 1, 2, 1] = 1.
+    SmallFiniteHorizonMDP(P, R, p0, 1, 1)
+end
 
 
 type ChainMDP

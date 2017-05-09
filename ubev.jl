@@ -5,6 +5,7 @@ type UBEV<:FiniteHorizonAgent
     n::Array{UInt64, 3}
     rewards::Array{Float64, 3}
     Vopt::Matrix{Float64}
+    Qopt::Array{Float64, 3}
     δ::Float64
     rewards_known::Bool
     maxRet::Float64
@@ -12,18 +13,31 @@ type UBEV<:FiniteHorizonAgent
     explore_bonus::Float64
 end
 
-function UBEV(S, A, H, rewards, δ, explore_bonus=1.)
+function UBEV(S, A, H, rewards::Array, δ, explore_bonus=1.)
     policy = zeros(UInt64, S, H)
     ns = zeros(UInt64, S, S, A, H)
     phat = zeros(S, S, A, H)
     phat[1, :, :, :] = 1.
     n = zeros(UInt64, S, A, H)
     maxRet = sum(maximum(reshape(rewards, S*A, H), 1))
-    m = UBEV(policy, ns, phat, n, rewards, zeros(S, H+1), δ, true, maxRet, maximum(rewards[:]), explore_bonus)
+    m = UBEV(policy, ns, phat, n, rewards, zeros(S, H+1), zeros(S, A, H+1), δ, true, maxRet, maximum(rewards[:]), explore_bonus)
     rand!(m.policy, 1:A) # Initialize with uniformly random policy
     m
 end
 
+function UBEV(S, A, H, δ::Real, explore_bonus=1.)
+    policy = zeros(UInt64, S, H)
+    ns = zeros(UInt64, S, S, A, H)
+    phat = zeros(S, S, A, H)
+    phat[1, :, :, :] = 1.
+    n = zeros(UInt64, S, A, H)
+    maxr = 1.
+    maxRet = H * maxr
+    rewards = zeros(S, A, H)
+    m = UBEV(policy, ns, phat, n, rewards, zeros(S, H+1), zeros(S, A, H+1), δ, false, maxRet, maxr, explore_bonus)
+    rand!(m.policy, 1:A) # Initialize with uniformly random policy
+    m
+end
 maxV(m::UBEV) = m.maxRet
 maxR(m::UBEV) = m.maxR
 
@@ -58,13 +72,17 @@ function update_policy!(m::UBEV)
                     EV = min(curmaxV, m.phat[:, s, a, t] ⋅ V + confint(m.n[s,a,t], lC, curmaxV - curminV) * m.explore_bonus) 
                 end
                 
-                r = m.rewards[s, a, t]
+                r = min(m.rewards[s, a, t], Rmax)
                 if !m.rewards_known
-                    min(m.rewards[s, a, t] / n[s, a, t] + confint(m.n[s, a, t], lC, Rmax), Rmax)
+                    r = Rmax
+                    if m.n[s,a,t] > 0
+                        r = min(m.rewards[s, a, t] / m.n[s, a, t] + confint(m.n[s, a, t], lC, Rmax), Rmax) 
+                    end
                 end
                 
                 Q[a] = r + EV
             end
+            m.Qopt[s,:,t] = Q
             bestA = indmax(Q)
             m.policy[s, t] = bestA
             m.Vopt[s, t] = Q[bestA]
