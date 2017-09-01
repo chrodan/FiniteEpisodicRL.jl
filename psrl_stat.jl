@@ -1,3 +1,5 @@
+using Distributions
+
 type PSRLStat<:FiniteHorizonAgent
     policy::Matrix{UInt64}
     ns::Array{UInt64, 3}
@@ -19,7 +21,7 @@ function PSRLStat(S, A, H, α::Real, τ0::Real, τ::Real)
     Pcur[1, :, :] = 1.
     n = zeros(UInt64, S, A)
     Rcur = zeros(S, A)
-    m = PSRL(policy, ns, n, zeros(S, A), fill(τ0, S, A), Pcur, Rcur, α, τ, false, zeros(S, H+1), zeros(S, A, H+1))
+    m = PSRLStat(policy, ns, n, zeros(S, A), fill(τ0, S, A), Pcur, Rcur, α, τ, false, zeros(S, H+1), zeros(S, A, H+1))
     rand!(m.policy, 1:A) # Initialize with uniformly random policy
     m
 end
@@ -34,7 +36,7 @@ function observe!(m::PSRLStat, s, a, t, r, sn)
     end
 end
 
-function sample_MDP!(m::PSRL)
+function sample_MDP!(m::PSRLStat)
     S = nS(m)
     A = nA(m)
     H = horizon(m)
@@ -56,7 +58,7 @@ function sample_MDP!(m::PSRL)
     P, R
 end
 
-function update_policy!(m::PSRL)
+function update_policy!(m::PSRLStat)
     H = horizon(m)
     S = nS(m)
     A = nA(m)
