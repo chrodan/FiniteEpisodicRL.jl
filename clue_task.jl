@@ -120,11 +120,9 @@ function expected_return(t::ClueTaskJointObs, detpolicy)
         for h=1:horizon(t)
             a = detpolicy(s, h)
             sn, r, stop = step!(t, a)
-            observe!(m, s, a, h, r, sn)
             s = sn
             ret += r
         end
-        #@show clues, ret
         res += ret
         n += 1
     end
